@@ -25,58 +25,83 @@
 
 <<EOF>>                 return 'EOF';
 
-.                       { console.error('Este es un error léxico: ' + yytext + ', en la linea: ' + yylloc.first_line + ', en la columna: ' + yylloc.first_column); }
+.                       { console.error('Error léxico: ' + yytext + ', Linea: ' + yylloc.first_line + ', Columna: ' + yylloc.first_column); }
 /lex
-
-/* Asociación de operadores y precedencia */
-
-%left 'MAS' 'MENOS'
-%left 'POR' 'DIVIDIDO'
-%left UMENOS
+%{
+    //const instrucciones = require('./instrucciones');
+    let num = 0;
+    function newID(){
+        num++
+        return "var_"+num;
+    }
+%}
 
 %start ini
 
 %% /* Definición de la gramática */
 
 ini
-	: E EOF
+	: E EOF { console.log($1.c3d); }
 ;
+
 E 
-    : E MAS T {}
-    | E MENOS T {}
-    | T {}
+    : E MAS T           {   let id_mas = newID(); 
+                            $$ = {
+                                temp: id_mas, 
+                                c3d: $1.c3d + $3.c3d + "\n" + id_mas + " = " + $1.temp + " + " + $3.temp
+                            };    
+                        }
+    | E MENOS T      {
+                            let id_menos = newID();
+                            $$ = {
+                                temp: id_menos,
+                                c3d: $1.c3d + $3.c3d + "\n" + id_menos + " = " + $1.temp + " - " + $3.temp
+                            };      
+                        }
+    | T                 {
+                            $$ = {
+                                temp: $1.temp,
+                                c3d: $1.c3d
+                            };
+                        }
 ;
 
 T 
-    : T POR F {}
-    | T DIVIDIDO F {}
-    | F {}
+    : T POR F           {   let id_por = newID(); 
+                            $$ = {
+                                temp: id_por, 
+                                c3d: $1.c3d + $3.c3d + "\n" + id_por + " = " + $1.temp + " * " + $3.temp
+                            };
+                        }
+    | T DIVIDIDO F      {
+                            let id_div = newID();
+                            $$ = {
+                                temp: id_div,
+                                c3d: $1.c3d + $3.c3d + "\n" + id_div + " = " + $1.temp + " / " + $3.temp
+                            };      
+                        }
+    | F                 {
+                            $$ = {
+                                temp: $1.temp,
+                                c3d: $1.c3d
+                            };
+                        }
 ;
 
 F 
-    : PARIZQ E PARDER {}
-    | IDENTIFICADOR {}
-    | ENTERO
-
-instrucciones
-	: instruccion instrucciones
-	| instruccion
-	| error { console.error('Este es un error sintáctico: ' + yytext + ', en la linea: ' + this._$.first_line + ', en la columna: ' + this._$.first_column); }
-;
-
-instruccion
-	: REVALUAR CORIZQ expresion CORDER PTCOMA {
-		console.log('El valor de la expresión es: ' + $3);
-	}
-;
-
-expresion
-	: MENOS expresion %prec UMENOS  { $$ = $2 *-1; }
-	| expresion MAS expresion       { $$ = $1 + $3; }
-	| expresion MENOS expresion     { $$ = $1 - $3; }
-	| expresion POR expresion       { $$ = $1 * $3; }
-	| expresion DIVIDIDO expresion  { $$ = $1 / $3; }
-	| ENTERO                        { $$ = Number($1); }
-	| DECIMAL                       { $$ = Number($1); }
-	| PARIZQ expresion PARDER       { $$ = $2; }
+    : PARIZQ E PARDER   { $$ = {
+                                temp: $2.temp, 
+                                c3d: $2.c3d
+                            };
+                        }
+    | IDENTIFICADOR     { $$ = {
+                                temp: $1, 
+                                c3d: ""
+                            }; 
+                        }
+    | ENTERO            { $$ = {
+                                temp: Number($1), 
+                                c3d: ""
+                            }; 
+                        }
 ;
